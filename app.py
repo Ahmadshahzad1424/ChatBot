@@ -10,6 +10,7 @@ load_dotenv()
 
 # Gemini model constant at top of file, overridable with GEMINI_MODEL env var
 GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-3.8-flash")
+FALLBACK_MODEL = "gemini-2.5-flash"
 
 # Valid study modes
 VALID_MODES = {"ask", "explain", "quiz", "summarize", "tips"}
@@ -100,7 +101,7 @@ def get_gemini_client() -> genai.Client | None:
         return None
     return genai.Client(
         api_key=api_key.strip(),
-        http_options={"timeout": 15000}
+        http_options={"timeout": 12000}
     )
 
 
@@ -235,12 +236,12 @@ def chat():
         }), 200
 
     # Attempt Gemini API call with prompt-engineered system instruction
-    try:
-        logger.info("Calling Gemini API model '%s' with persona for mode '%s'...", GEMINI_MODEL, mode)
-        config = types.GenerateContentConfig(
-            system_instruction=system_instruction,
-        )
+    config = types.GenerateContentConfig(
+        system_instruction=system_instruction,
+    )
 
+    try:
+        logger.info("Calling Gemini API with model '%s' for mode '%s'...", GEMINI_MODEL, mode)
         gemini_response = client.models.generate_content(
             model=GEMINI_MODEL,
             contents=clean_prompt,
@@ -253,8 +254,31 @@ def chat():
             "source": "gemini"
         }), 200
 
-    except Exception as err:
-        logger.error("Gemini API call failed: %s", err, exc_info=True)
+    except Exception as primary_err:
+        logger.warning(
+            "Primary model '%s' failed (%s). Attempting stable fallback model '%s'...",
+            GEMINI_MODEL, primary_err, FALLBACK_MODEL
+        )
+        
+        # Automatic fallback to stable model if gemini-3.8-flash has a 504 deadline / 503 spike
+        if GEMINI_MODEL != FALLBACK_MODEL:
+            try:
+                gemini_response = client.models.generate_content(
+                    model=FALLBACK_MODEL,
+                    contents=clean_prompt,
+                    config=config,
+                )
+                response_text = gemini_response.text or ""
+                return jsonify({
+                    "response": response_text,
+                    "source": "gemini"
+                }), 200
+            except Exception as fallback_err:
+                logger.error("Fallback model '%s' also failed: %s", FALLBACK_MODEL, fallback_err, exc_info=True)
+                err = fallback_err
+        else:
+            err = primary_err
+
         return jsonify({
             "response": generate_demo_response(clean_prompt, mode=mode),
             "source": "demo",
