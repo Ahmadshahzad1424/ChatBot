@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Study Buddy - Your AI-Powered Learning Companion</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#eef2ff',
+              100: '#e0e7ff',
+              200: '#c7d2fe',
+              500: '#6366f1',
+              600: '#4f46e5',
+              700: '#4338ca',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    @keyframes pulse-subtle {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.6; }
+    }
+    .animate-pulse-subtle {
+      animation: pulse-subtle 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    }
+  </style>
+</head>
+<body class="bg-gradient-to-br from-slate-50 via-indigo-50/40 to-violet-50/50 min-h-screen text-slate-800 antialiased font-sans">
+  
+  <div class="max-w-4xl mx-auto px-4 py-8 sm:py-12">
+    
+    <!-- Top Bar with Health Badge -->
+    <header class="text-center mb-8">
+      <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium mb-3 shadow-sm border border-slate-200 bg-white" id="status-badge">
+        <span class="w-2 h-2 rounded-full bg-slate-400 animate-pulse" id="status-dot"></span>
+        <span id="status-text" class="text-slate-600">Checking AI backend...</span>
+      </div>
+      
+      <h1 class="text-3xl sm:text-5xl font-extrabold tracking-tight bg-gradient-to-r from-indigo-600 via-indigo-700 to-violet-700 bg-clip-text text-transparent">
+        🎓 Study Buddy
+      </h1>
+      <p class="mt-2 text-base sm:text-lg text-slate-600 font-medium">
+        Your AI-Powered Learning Companion
+      </p>
+    </header>
+
+    <!-- Main Container Card -->
+    <main class="bg-white/90 backdrop-blur-md rounded-2xl shadow-xl shadow-indigo-100/60 border border-indigo-100 p-5 sm:p-8">
+      
+      <!-- Mode Tabs -->
+      <div class="mb-6">
+        <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">
+          Choose a Study Mode
+        </label>
+        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2" role="tablist" id="mode-tabs">
+          <button
+            type="button"
+            data-mode="ask"
+            class="mode-btn flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-150 border shadow-sm"
+          >
+            <span>💬</span> <span>Ask Questions</span>
+          </button>
+          
+          <button
+            type="button"
+            data-mode="explain"
+            class="mode-btn flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-150 border shadow-sm"
+          >
+            <span>💡</span> <span>Explain Topics (ELI5)</span>
+          </button>
+          
+          <button
+            type="button"
+            data-mode="quiz"
+            class="mode-btn flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-150 border shadow-sm"
+          >
+            <span>📝</span> <span>Quiz Me</span>
+          </button>
+          
+          <button
+            type="button"
+            data-mode="summarize"
+            class="mode-btn flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-150 border shadow-sm"
+          >
+            <span>📄</span> <span>Summarize Notes</span>
+          </button>
+          
+          <button
+            type="button"
+            data-mode="tips"
+            class="mode-btn flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-150 border shadow-sm"
+          >
+            <span>🎯</span> <span>Study Tips</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Input Form -->
+      <form id="chat-form" class="space-y-4">
+        <div>
+          <div class="flex justify-between items-center mb-1.5">
+            <label for="prompt-input" class="text-xs font-bold uppercase tracking-wider text-slate-500" id="prompt-label">
+              Your Question or Topic
+            </label>
+            <span class="text-xs text-slate-400 hidden sm:inline">Press <kbd class="px-1.5 py-0.5 bg-slate-100 border border-slate-200 rounded text-[10px] font-mono">Ctrl + Enter</kbd> to submit</span>
+          </div>
+          
+          <textarea
+            id="prompt-input"
+            rows="5"
+            class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100 transition duration-150 text-slate-800 placeholder-slate-400 resize-y text-sm sm:text-base outline-none bg-slate-50/50 focus:bg-white"
+            placeholder="Type your question or paste your study material..."
+            required
+          ></textarea>
+        </div>
+
+        <!-- Error alert message container -->
+        <div id="error-banner" class="hidden rounded-xl bg-rose-50 border border-rose-200 p-3 text-sm text-rose-700 flex items-start gap-2">
+          <span class="text-base leading-none">⚠️</span>
+          <span id="error-message" class="flex-1"></span>
+          <button type="button" onclick="document.getElementById('error-banner').classList.add('hidden')" class="text-rose-500 hover:text-rose-800 text-xs font-bold">✕</button>
+        </div>
+
+        <!-- Submit Button -->
+        <div class="flex items-center justify-end gap-3 pt-1">
+          <button
+            type="button"
+            id="clear-btn"
+            class="px-4 py-2.5 rounded-xl text-sm font-medium text-slate-500 hover:text-slate-700 hover:bg-slate-100 transition duration-150"
+          >
+            Clear
+          </button>
+          
+          <button
+            type="submit"
+            id="submit-btn"
+            class="inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl text-sm sm:text-base font-semibold text-white bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 active:scale-[0.98] transition-all duration-150 shadow-md shadow-indigo-200 disabled:opacity-60 disabled:cursor-not-allowed disabled:transform-none"
+          >
+            <svg id="btn-spinner" class="hidden animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <span id="btn-text">Ask Study Buddy ✨</span>
+          </button>
+        </div>
+      </form>
+
+      <!-- Result Card -->
+      <section id="result-section" class="hidden mt-8 pt-6 border-t border-slate-100">
+        <div class="bg-gradient-to-br from-indigo-50/50 via-white to-violet-50/40 rounded-2xl p-5 sm:p-7 border border-indigo-100 shadow-sm">
+          
+          <!-- Result Card Header -->
+          <div class="flex items-center justify-between pb-4 mb-4 border-b border-indigo-100/70">
+            <div class="flex items-center gap-2.5">
+              <span class="text-xl" id="result-icon">🤖</span>
+              <div>
+                <h3 class="text-sm sm:text-base font-bold text-slate-800" id="result-title">Study Buddy Response</h3>
+                <span id="result-mode-tag" class="text-[11px] font-medium text-indigo-600 uppercase tracking-wide"></span>
+              </div>
+            </div>
+            
+            <div class="flex items-center gap-2">
+              <span id="source-badge" class="px-2.5 py-1 rounded-full text-xs font-semibold"></span>
+              
+              <button
+                type="button"
+                id="copy-btn"
+                title="Copy response to clipboard"
+                class="p-2 rounded-lg text-slate-500 hover:text-indigo-600 hover:bg-white border border-transparent hover:border-slate-200 transition duration-150 text-xs flex items-center gap-1 font-medium"
+              >
+                <span id="copy-icon">📋</span>
+                <span id="copy-text">Copy</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Note Banner for Fallback/Demo -->
+          <div id="result-note-banner" class="hidden mb-4 p-3 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-800 flex items-start gap-2">
+            <span>ℹ️</span>
+            <span id="result-note" class="flex-1"></span>
+          </div>
+
+          <!-- Response Content Body -->
+          <div id="result-body" class="text-slate-800 text-sm sm:text-base leading-relaxed whitespace-pre-wrap font-sans selection:bg-indigo-100"></div>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="mt-8 text-center text-xs text-slate-400">
+      <p>Study Buddy • Powered by Google Gemini AI & Flask</p>
+    </footer>
+
+  </div>
+
+  <!-- Frontend Logic -->
+  <script>
+    // Mode definitions & placeholders
+    const MODES = {
+      ask: {
+        label: "Ask Questions",
+        icon: "💬",
+        promptLabel: "Your Question",
+        placeholder: "What would you like to know or understand better? (e.g. How does photosynthesis work? Why is the sky blue?)",
+      },
+      explain: {
+        label: "Explain Topics (ELI5)",
+        icon: "💡",
+        promptLabel: "Topic to Explain",
+        placeholder: "Enter a concept you want explained simply, like you are 5 years old (e.g. Quantum Computing, Inflation, Blockchain)...",
+      },
+      quiz: {
+        label: "Quiz Me",
+        icon: "📝",
+        promptLabel: "Topic or Material for Quiz",
+        placeholder: "Enter a topic or paste text you want to be quizzed on (e.g. World War II key events, Mitosis vs Meiosis)...",
+      },
+      summarize: {
+        label: "Summarize Notes",
+        icon: "📄",
+        promptLabel: "Notes or Text to Summarize",
+        placeholder: "Paste your lecture notes, textbook excerpt, or article here to get key points and a concise summary...",
+      },
+      tips: {
+        label: "Study Tips",
+        icon: "🎯",
+        promptLabel: "Subject or Learning Challenge",
+        placeholder: "What subject or exam are you preparing for? (e.g. Organic Chemistry exam in 3 days, memorizing Spanish vocabulary)...",
+      }
+    };
+
+    let currentMode = "ask";
+
+    // DOM Elements
+    const modeTabs = document.getElementById("mode-tabs");
+    const modeButtons = document.querySelectorAll(".mode-btn");
+    const promptInput = document.getElementById("prompt-input");
+    const promptLabel = document.getElementById("prompt-label");
+    const chatForm = document.getElementById("chat-form");
+    const submitBtn = document.getElementById("submit-btn");
+    const btnSpinner = document.getElementById("btn-spinner");
+    const btnText = document.getElementById("btn-text");
+    const clearBtn = document.getElementById("clear-btn");
+    const errorBanner = document.getElementById("error-banner");
+    const errorMessage = document.getElementById("error-message");
+    const resultSection = document.getElementById("result-section");
+    const resultBody = document.getElementById("result-body");
+    const resultTitle = document.getElementById("result-title");
+    const resultIcon = document.getElementById("result-icon");
+    const resultModeTag = document.getElementById("result-mode-tag");
+    const sourceBadge = document.getElementById("source-badge");
+    const resultNoteBanner = document.getElementById("result-note-banner");
+    const resultNote = document.getElementById("result-note");
+    const copyBtn = document.getElementById("copy-btn");
+    const copyText = document.getElementById("copy-text");
+    const statusBadge = document.getElementById("status-badge");
+    const statusDot = document.getElementById("status-dot");
+    const statusText = document.getElementById("status-text");
+
+    // Initialize Active Tab UI
+    function setMode(modeKey) {
+      if (!MODES[modeKey]) return;
+      currentMode = modeKey;
+      const config = MODES[modeKey];
+
+      // Update button styles
+      modeButtons.forEach(btn => {
+        const btnMode = btn.getAttribute("data-mode");
+        if (btnMode === modeKey) {
+          btn.className = "mode-btn flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-150 shadow-md bg-indigo-600 text-white border-indigo-600 ring-2 ring-indigo-300 ring-offset-1";
+        } else {
+          btn.className = "mode-btn flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-150 border border-slate-200 bg-white text-slate-600 hover:bg-indigo-50/70 hover:text-indigo-600 hover:border-indigo-200 shadow-sm";
+        }
+      });
+
+      // Update placeholder & label
+      promptLabel.textContent = config.promptLabel;
+      promptInput.placeholder = config.placeholder;
+      promptInput.focus();
+    }
+
+    // Attach click events to mode buttons
+    modeButtons.forEach(btn => {
+      btn.addEventListener("click", () => {
+        setMode(btn.getAttribute("data-mode"));
+      });
+    });
+
+    // Check backend health on page load
+    async function checkHealth() {
+      try {
+        const res = await fetch("/health");
+        if (!res.ok) throw new Error("Health check failed");
+        const data = await res.json();
+
+        if (data.gemini_connected) {
+          statusDot.className = "w-2 h-2 rounded-full bg-emerald-500";
+          statusText.textContent = `Gemini AI Connected (${data.model || "Active"})`;
+          statusBadge.className = "inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium mb-3 shadow-sm border border-emerald-200 bg-emerald-50 text-emerald-800";
+        } else {
+          statusDot.className = "w-2 h-2 rounded-full bg-amber-500";
+          statusText.textContent = "Demo Mode (API key not set)";
+          statusBadge.className = "inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium mb-3 shadow-sm border border-amber-200 bg-amber-50 text-amber-800";
+        }
+      } catch (e) {
+        statusDot.className = "w-2 h-2 rounded-full bg-slate-400";
+        statusText.textContent = "Backend Ready";
+      }
+    }
+
+    // UI Loading State toggle
+    function setLoading(isLoading) {
+      if (isLoading) {
+        submitBtn.disabled = true;
+        btnSpinner.classList.remove("hidden");
+        btnText.textContent = "Thinking... 🧠";
+        errorBanner.classList.add("hidden");
+      } else {
+        submitBtn.disabled = false;
+        btnSpinner.classList.add("hidden");
+        btnText.textContent = "Ask Study Buddy ✨";
+      }
+    }
+
+    // Show error helper
+    function showError(msg) {
+      errorMessage.textContent = msg;
+      errorBanner.classList.remove("hidden");
+      errorBanner.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }
+
+    // Form Submission Handler
+    chatForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const prompt = promptInput.value.trim();
+
+      if (!prompt) {
+        showError("Please enter a question or topic before submitting.");
+        promptInput.focus();
+        return;
+      }
+
+      setLoading(true);
+
+      try {
+        const response = await fetch("/api/chat", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            prompt: prompt,
+            mode: currentMode
+          })
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          const errText = data.error || `Server responded with status ${response.status}`;
+          throw new Error(errText);
+        }
+
+        // Render result
+        resultIcon.textContent = MODES[currentMode].icon;
+        resultTitle.textContent = `${MODES[currentMode].label} Result`;
+        resultModeTag.textContent = `Mode: ${currentMode}`;
+        resultBody.textContent = data.response;
+
+        // Source badge
+        if (data.source === "gemini") {
+          sourceBadge.textContent = "✨ Gemini AI";
+          sourceBadge.className = "px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 border border-emerald-200";
+        } else {
+          sourceBadge.textContent = "ℹ️ Demo Fallback";
+          sourceBadge.className = "px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-800 border border-amber-200";
+        }
+
+        // Note banner (if demo fallback or warning)
+        if (data.note) {
+          resultNote.textContent = data.note;
+          resultNoteBanner.classList.remove("hidden");
+        } else {
+          resultNoteBanner.classList.add("hidden");
+        }
+
+        resultSection.classList.remove("hidden");
+        resultSection.scrollIntoView({ behavior: "smooth", block: "start" });
+
+      } catch (error) {
+        showError(`Could not get a response: ${error.message}. Please try again.`);
+      } finally {
+        // ALWAYS reset loading state so UI is never stuck
+        setLoading(false);
+      }
+    });
+
+    // Keyboard shortcut: Ctrl+Enter / Cmd+Enter to submit
+    promptInput.addEventListener("keydown", (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
+        e.preventDefault();
+        chatForm.requestSubmit();
+      }
+    });
+
+    // Clear Button
+    clearBtn.addEventListener("click", () => {
+      promptInput.value = "";
+      errorBanner.classList.add("hidden");
+      promptInput.focus();
+    });
+
+    // Copy to clipboard
+    copyBtn.addEventListener("click", async () => {
+      const textToCopy = resultBody.textContent;
+      if (!textToCopy) return;
+
+      try {
+        await navigator.clipboard.writeText(textToCopy);
+        copyText.textContent = "Copied! ✓";
+        copyBtn.classList.add("text-emerald-600");
+        setTimeout(() => {
+          copyText.textContent = "Copy";
+          copyBtn.classList.remove("text-emerald-600");
+        }, 2000);
+      } catch (err) {
+        copyText.textContent = "Failed";
+        setTimeout(() => { copyText.textContent = "Copy"; }, 2000);
+      }
+    });
+
+    // Initial setup
+    setMode("ask");
+    checkHealth();
+  </script>
+</body>
+</html>
